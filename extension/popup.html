@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { width: 360px; font-family: 'Inter', system-ui, sans-serif; background: #020617; color: white; padding: 16px; }
+    .header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+    .header h1 { font-size: 18px; font-weight: 700; background: linear-gradient(to right, #6366f1, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .status { padding: 12px; border-radius: 12px; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(51, 65, 85, 0.5); margin-bottom: 12px; }
+    .status.safe { border-color: rgba(16, 185, 129, 0.5); }
+    .status.danger { border-color: rgba(239, 68, 68, 0.5); background: rgba(239, 68, 68, 0.1); }
+    .status h3 { font-size: 14px; margin-bottom: 4px; }
+    .status p { font-size: 12px; color: #94a3b8; }
+    .toggle { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: rgba(30, 41, 59, 0.6); border-radius: 12px; border: 1px solid rgba(51, 65, 85, 0.5); margin-bottom: 8px; }
+    .toggle label { font-size: 14px; }
+    .switch { position: relative; width: 44px; height: 24px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #334155; border-radius: 24px; transition: 0.3s; }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; }
+    .switch input:checked + .slider { background: #6366f1; }
+    .switch input:checked + .slider:before { transform: translateX(20px); }
+    .log { max-height: 150px; overflow-y: auto; background: rgba(15, 23, 42, 0.8); border-radius: 12px; padding: 12px; }
+    .log-item { font-size: 12px; padding: 6px 0; border-bottom: 1px solid rgba(51, 65, 85, 0.3); }
+    .log-item:last-child { border-bottom: none; }
+    .log-item .time { color: #64748b; margin-right: 8px; }
+    .log-item.safe { color: #10b981; }
+    .log-item.danger { color: #ef4444; }
+    .log-item.warn { color: #eab308; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    <h1>VoiceChain Security</h1>
+  </div>
+
+  <div id="status" class="status safe">
+    <h3>Protection Active</h3>
+    <p>Monitoring transactions in real-time</p>
+  </div>
+
+  <div class="toggle">
+    <label>Voice Alerts</label>
+    <label class="switch">
+      <input type="checkbox" id="voiceToggle" checked>
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="toggle">
+    <label>Auto-Block High Risk</label>
+    <label class="switch">
+      <input type="checkbox" id="autoBlockToggle" checked>
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <h3 style="font-size: 14px; margin: 12px 0 8px;">Recent Activity</h3>
+  <div id="log" class="log"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
