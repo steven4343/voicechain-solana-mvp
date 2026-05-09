@@ -1,23 +1,60 @@
 # VoiceChain - Web3 Security & Transparency Platform
 
-A hackathon-ready MVP that protects Solana users from malicious transactions using AI-powered risk analysis and voice alerts, with blockchain-based scholarship management.
+Hackathon-ready MVP protecting Solana users from malicious transactions using AI risk analysis and voice alerts, with blockchain-based scholarship management.
+
+## Quick Start
+
+### Prerequisites
+- Node.js 18+
+- pnpm (recommended) or npm
+- Phantom or Solflare wallet
+
+### 1. Backend
+
+```bash
+cd backend
+cp .env.example .env
+# Edit .env with your OPENROUTER_API_KEY
+pnpm install
+pnpm dev
+```
+
+The backend starts on `http://localhost:3001`.
+
+### 2. Frontend
+
+```bash
+cd frontend
+cp .env.example .env.local
+pnpm install
+pnpm add @solana/web3.js @solana/wallet-adapter-react @solana/wallet-adapter-wallets @solana/wallet-adapter-base @solana/wallet-adapter-react-ui
+pnpm dev
+```
+
+The frontend starts on `http://localhost:3000`.
+
+### 3. Demo
+
+```bash
+node scripts/demo.js
+```
 
 ## Features
 
-- **Wallet Connection** - Phantom & Solflare wallet support via Wallet Adapter
-- **Security Dashboard** - Real-time balance, transaction monitoring, risk scores
+- **Wallet Connection** - Phantom & Solflare via Solana Wallet Adapter
+- **Security Dashboard** - Balance, transaction monitoring, risk score
 - **AI Transaction Analyzer** - OpenRouter-powered risk scoring (0-100)
-- **Voice Security Alerts** - ElevenLabs text-to-speech warnings for risky transactions
-- **Scholarship Smart Contract** - Anchor-based Solana program for milestone-based funding
-- **Analytics** - Risk history charts, transaction volume, security metrics
-- **Chrome Extension** - Browser-level transaction monitoring and alerts
+- **Voice Security Alerts** - ElevenLabs TTS warnings for risky transactions
+- **Scholarship Smart Contract** - Anchor-based Solana program for milestone funding
+- **Analytics** - Risk history, transaction volume, security metrics
+- **Chrome Extension** - Browser-level transaction monitoring
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | Next.js, React, TypeScript, TailwindCSS |
-| Blockchain | Solana, Anchor Framework, @solana/web3.js |
+| Frontend | Next.js 14, React 18, TypeScript, TailwindCSS |
+| Blockchain | Solana, Anchor 0.29, @solana/web3.js |
 | Backend | Node.js, Express |
 | AI | OpenRouter API (Mistral 7B) |
 | Voice | ElevenLabs TTS |
@@ -27,143 +64,46 @@ A hackathon-ready MVP that protects Solana users from malicious transactions usi
 
 ```
 voicechain/
-├── frontend/              # Next.js application
-│   ├── pages/             # Routes (dashboard, scholarships, analytics)
-│   ├── components/        # Reusable UI components
-│   ├── hooks/             # Custom React hooks
-│   ├── context/           # Global state management
-│   ├── wallet/            # Wallet adapter configuration
-│   ├── types/             # TypeScript type definitions
-│   └── styles/            # Global CSS and Tailwind
-├── backend/               # Express API server
-│   ├── api/               # API route handlers
-│   └── ai-risk-engine/    # AI transaction risk analyzer
-├── programs/              # Anchor smart contracts
-│   └── scholarship/       # Scholarship program (Rust)
-├── extension/             # Chrome extension
-│   ├── manifest.json
-│   ├── popup.html/js      # Extension popup UI
-│   ├── content.js         # Content script for page monitoring
-│   └── background.js      # Service worker for background tasks
+├── frontend/           # Next.js app
+│   ├── pages/          # Routes
+│   ├── components/     # UI components
+│   ├── hooks/          # useRiskAnalyzer, useVoiceAlert, useSolanaConnection
+│   ├── lib/            # solana.ts (connection utilities)
+│   ├── context/        # AppContext, WalletContext
+│   └── styles/         # globals.css (dark theme)
+├── backend/            # Express API
+│   ├── server.js       # Main server
+│   ├── src/
+│   │   ├── config/     # Environment config
+│   │   └── services/   # solana.js (backend Solana service)
+│   ├── ai-risk-engine/ # OpenRouter AI analysis
+│   └── api/            # Scholarship API routes
+├── programs/           # Anchor smart contracts
+│   └── scholarship/    # Milestone-based scholarship (Rust)
+├── extension/          # Chrome extension
+├── scripts/            # Demo & test transactions
 └── README.md
 ```
 
-## Quick Start
-
-### Prerequisites
-
-- Node.js 18+
-- Rust + Cargo (for smart contract)
-- Anchor CLI (`cargo install --git https://github.com/coral-xyz/anchor avm --locked`)
-- Solana CLI (`sh -c "$(curl -sSfL https://release.solana.com/v1.17.0/install)"`)
-- A Phantom or Solflare wallet
-
-### 1. Backend Setup
-
-```bash
-cd voicechain/backend
-cp .env.example .env
-# Edit .env with your API keys
-npm install
-npm run dev
-```
-
-The backend will start on `http://localhost:3001`.
-
-### 2. Frontend Setup
-
-```bash
-cd voicechain/frontend
-cp .env.example .env.local
-# Edit .env.local with your API keys
-npm install
-npm run dev
-```
-
-The frontend will start on `http://localhost:3000`.
-
-### 3. Smart Contract (Optional)
-
-```bash
-cd voicechain/programs/scholarship
-anchor build
-anchor test
-anchor deploy --provider.cluster devnet
-```
-
-Update the program ID in `Anchor.toml` and `programs/scholarship/src/lib.rs`.
-
-### 4. Chrome Extension
-
-1. Open Chrome and go to `chrome://extensions`
-2. Enable "Developer mode"
-3. Click "Load unpacked"
-4. Select the `voicechain/extension` folder
-
-## Environment Variables
-
-### Backend (.env)
-
-| Variable | Description |
-|----------|------------|
-| `PORT` | Server port (default: 3001) |
-| `OPENROUTER_API_KEY` | OpenRouter API key for AI analysis |
-| `OPENROUTER_BASE_URL` | OpenRouter API base URL |
-| `AI_MODEL` | AI model to use (default: mistral-7b-instruct) |
-
-### Frontend (.env.local)
-
-| Variable | Description |
-|----------|------------|
-| `NEXT_PUBLIC_BACKEND_URL` | Backend API URL |
-| `NEXT_PUBLIC_ELEVENLABS_API_KEY` | ElevenLabs API key for voice alerts |
-| `NEXT_PUBLIC_SOLANA_NETWORK` | Solana network (devnet/mainnet-beta) |
-
 ## API Endpoints
-
-### Backend API
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/health` | Health check |
+| GET | `/health` | Health check (includes Solana RPC status) |
 | POST | `/api/risk/analyze` | Analyze transaction risk |
 | POST | `/api/risk/voice-warning` | Generate voice warning |
-| GET | `/api/analytics/risk-history` | Get risk score history |
-| GET | `/api/analytics/summary` | Get analytics summary |
-
-### Risk Analysis Request
-
-```json
-POST /api/risk/analyze
-{
-  "transactionData": {
-    "destination": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
-    "amount": 2500000000,
-    "programId": "11111111111111111111111111111111",
-    "tokenTransfers": []
-  },
-  "walletAddress": "YourWalletAddress..."
-}
-```
-
-### Risk Analysis Response
-
-```json
-{
-  "riskScore": 87,
-  "riskLevel": "high",
-  "reasons": [
-    "Destination address flagged in phishing database",
-    "Unusual token approval pattern detected"
-  ],
-  "recommendation": "Do not proceed with this transaction",
-  "timestamp": 1704067200000
-}
-```
+| GET | `/api/analytics/risk-history` | Risk score history |
+| GET | `/api/analytics/summary` | Analytics summary |
+| GET | `/api/solana/health` | Solana RPC health (version, slot, block height) |
+| GET | `/api/solana/balance/:address` | Get SOL balance for an address |
+| GET | `/api/solana/transaction/:signature` | Get transaction details |
+| GET | `/api/solana/account/:address` | Get account info |
+| POST | `/api/solana/airdrop` | Request devnet airdrop `{address, amount}` |
+| GET | `/api/solana/slot` | Current slot |
+| GET | `/api/solana/epoch` | Current epoch info |
+| GET | `/api/solana/signatures/:address` | Recent signatures for an address |
 
 ## Test Transactions
-
-Use these mock transaction signatures on the Analyzer page:
 
 | Signature | Expected Risk | Description |
 |-----------|--------------|-------------|
@@ -171,51 +111,104 @@ Use these mock transaction signatures on the Analyzer page:
 | `risky_tx_002` | Medium (55) | Unusual token approval |
 | `malicious_tx_003` | Critical (91) | Known phishing address |
 
-On the Dashboard, click **"Simulate High Risk Tx"** to trigger a voice alert.
-
 ## Smart Contract
 
-The scholarship program supports:
-
-- **Initialize Scholarship** - Create a new scholarship with milestones
-- **Donate** - Add funds to a scholarship vault
-- **Approve Milestone** - Committee members approve milestones
-- **Complete Milestone** - Admin marks milestones as complete
+The Anchor scholarship program supports:
+- **Initialize Scholarship** - Create scholarships with milestones
+- **Donate** - Add funds to scholarship vault
+- **Approve Milestone** - Committee members vote
+- **Complete Milestone** - Admin marks complete
 - **Withdraw Funds** - Student withdraws funded amounts
 
-### Accounts
+### Build & Deploy
 
-- `ScholarshipAccount` - Stores scholarship details and funding
-- `MilestoneAccount` - Individual milestone tracking
+```bash
+cd programs/scholarship
+anchor build
+anchor deploy --provider.cluster devnet
+```
+
+Update program ID in `Anchor.toml` and `programs/scholarship/src/lib.rs`.
+
+## Chrome Extension
+
+1. Open `chrome://extensions`
+2. Enable Developer mode
+3. Load unpacked → select `voicechain/extension`
+
+## Solana Connection
+
+The project has a dedicated Solana connection layer split between frontend and backend:
+
+### Frontend (`frontend/lib/solana.ts`)
+- Singleton `Connection` with configurable commitment (default: `confirmed`)
+- `getConnection(config?)` — create/reuse connection with optional override
+- `checkConnectionHealth()` — verify RPC connectivity (version, slot, block height)
+- `getBalance()`, `getLatestBlockhash()`, `confirmTransaction()` — common read operations
+- `sendTransaction()`, `simulateTransaction()` — write operations
+- `getSignaturesForAddress()`, `getTokenBalance()`, `getTransactionDetails()` — query helpers
+- `getExplorerUrl()` — build Solana Explorer links per network
+- `useSolanaConnection()` hook (`hooks/useSolanaConnection.ts`) — polls health every 30s
+
+### Backend (`backend/src/services/solana.js`)
+- Singleton `Connection` sourced from `config.solana`
+- `checkHealth()` — returns version, slot, block height, and endpoint
+- `getBalance()`, `getTransaction()`, `getAccountInfo()`, `getSignaturesForAddress()`
+- `requestAirdrop()` — devnet faucet for testing
+- PublicKey validation in API routes
+
+### Configuration
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SOLANA_NETWORK` | `devnet` | Cluster: `devnet`, `mainnet-beta`, or `testnet` |
+| `SOLANA_RPC_URL` | Auto-resolved | Custom RPC endpoint override |
+| `SOLANA_COMMITMENT` | `confirmed` | Commitment level (`processed`, `confirmed`, `finalized`) |
+| `SOLANA_CONFIRM_TIMEOUT` | `60000` | Transaction confirmation timeout (ms) |
+
+## Environment Variables
+
+### Backend (.env)
+| Variable | Description |
+|----------|------------|
+| `PORT` | Server port (default: 3001) |
+| `OPENROUTER_API_KEY` | OpenRouter API key |
+| `AI_MODEL` | Model (default: mistral-7b-instruct) |
+| `SOLANA_NETWORK` | Solana cluster (devnet/mainnet-beta/testnet) |
+| `SOLANA_RPC_URL` | Custom RPC endpoint |
+| `SOLANA_COMMITMENT` | Commitment level |
+| `SOLANA_CONFIRM_TIMEOUT` | Confirm timeout in ms |
+
+### Frontend (.env.local)
+| Variable | Description |
+|----------|------------|
+| `NEXT_PUBLIC_BACKEND_URL` | Backend URL |
+| `NEXT_PUBLIC_ELEVENLABS_API_KEY` | ElevenLabs API key |
+| `NEXT_PUBLIC_SOLANA_NETWORK` | Solana cluster |
+| `NEXT_PUBLIC_SOLANA_RPC_URL` | Custom RPC endpoint |
+
+## Hackathon Demo Script
+
+1. **Connect Wallet** - Click "Connect Wallet" → Phantom
+2. **Dashboard** - Show balance, risk score, transactions
+3. **Test Voice Alert** - Trigger high-risk tx to hear warning
+4. **Analyze Transaction** - Test mock transactions
+5. **Scholarships** - Browse scholarships and milestones
+6. **Analytics** - View risk history and charts
+7. **Chrome Extension** - Show popup with activity log
 
 ## Deployment
 
-### Vercel (Frontend)
-
+### Vercel
 ```bash
 cd frontend
 vercel --prod
 ```
 
-Set environment variables in Vercel dashboard.
-
 ### Solana Devnet
-
 ```bash
 cd programs/scholarship
-solana config set --url devnet
 anchor deploy
 ```
-
-## Hackathon Demo Script
-
-1. **Connect Wallet** - Click "Connect Wallet" and select Phantom
-2. **Dashboard** - Show balance, transactions, and risk score
-3. **Test Voice Alert** - Click "Simulate High Risk Tx" to hear warning
-4. **Analyze Transaction** - Go to Analyzer page, test with mock transactions
-5. **Scholarships** - Show scholarship list, click into details
-6. **Analytics** - Display risk history and transaction charts
-7. **Chrome Extension** - Show extension popup and settings
 
 ## License
 
