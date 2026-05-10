@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { LayoutDashboard, GraduationCap, Shield, Mic, BarChart3, Settings, Bell, Users, LogOut, User } from "lucide-react";
+import { LayoutDashboard, GraduationCap, Shield, Mic, BarChart3, Settings, Bell, Users, LogOut, User, Wallet } from "lucide-react";
 import { ReactNode, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useAuth } from "../context/AuthContext";
 
 const navItems = [
@@ -105,7 +104,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 )}
               </div>
             )}
-            <WalletMultiButton className="!bg-gradient-to-r !from-[var(--neon-purple)] !to-[var(--neon-blue)] !text-white !rounded-lg !px-4 !py-2 !h-auto !text-sm" />
+            {publicKey ? (
+              <div className="px-3 py-1.5 rounded-lg bg-secondary/50 border border-[var(--neon-purple)]/30 text-sm text-muted-foreground">
+                {publicKey.toBase58().slice(0, 4)}...{publicKey.toBase58().slice(-4)}
+              </div>
+            ) : (
+              <Link href="/login" className="px-4 py-2 rounded-lg bg-gradient-to-r from-[var(--neon-purple)] to-[var(--neon-blue)] text-white hover:shadow-lg transition-all flex items-center gap-2 text-sm">
+                <Wallet className="w-4 h-4" /> Connect Wallet
+              </Link>
+            )}
           </div>
         </header>
 
