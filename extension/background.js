@@ -64,28 +64,11 @@ async function analyzeCurrentTransaction(tab) {
 }
 
 function speak(text) {
-  chrome.storage.sync.get(["elevenLabsApiKey"], async (data) => {
-    if (!data.elevenLabsApiKey) return;
-
-    try {
-      const response = await fetch("https://api.elevenlabs.io/v1/text-to-speech/pNInz6obpgDQGcFmaJgB", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "xi-api-key": data.elevenLabsApiKey,
-        },
-        body: JSON.stringify({
-          text,
-          model_id: "eleven_monolingual_v1",
-        }),
-      });
-
-      const blob = await response.blob();
-      const audioUrl = URL.createObjectURL(blob);
-      const audio = new Audio(audioUrl);
-      await audio.play();
-    } catch (error) {
-      console.error("[VoiceChain] Voice alert failed:", error);
-    }
-  });
+  try {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.0;
+    speechSynthesis.speak(utterance);
+  } catch (error) {
+    console.error("[VoiceChain] Speech failed:", error);
+  }
 }

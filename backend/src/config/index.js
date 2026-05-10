@@ -32,6 +32,14 @@ const config = {
     confirmTimeout: parseInt(process.env.SOLANA_CONFIRM_TIMEOUT || "60000"),
     wsEndpoint: process.env.SOLANA_WS_URL || undefined,
   },
+  elevenlabs: {
+    apiKey: process.env.ELEVENLABS_API_KEY,
+    model: process.env.ELEVENLABS_MODEL || "eleven_flash_v2_5",
+    voiceId: process.env.ELEVENLABS_VOICE_ID || "pNInz6obpgDQGcFmaJgB",
+  },
+  app: {
+    url: process.env.APP_URL || "http://localhost:3000",
+  },
 };
 
 module.exports = { config, SOLANA_NETWORKS };

@@ -3,20 +3,28 @@ const express = require("express");
 const cors = require("cors");
 const { analyzeTransactionRisk } = require("./ai-risk-engine/analyzer");
 const solanaService = require("./src/services/solana");
+const elevenlabs = require("./src/services/elevenlabs");
+const realData = require("./src/services/realData");
+const communityService = require("./src/services/community");
+const authService = require("./src/services/auth");
 const { config } = require("./src/config");
 
 const app = express();
 const PORT = config.port;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 
 app.get("/health", async (req, res) => {
-  const health = await solanaService.checkHealth();
+  const solanaHealth = await solanaService.checkHealth();
+  const elevenlabsReady = !!config.elevenlabs.apiKey;
   res.json({
-    status: health.ok ? "ok" : "degraded",
+    status: solanaHealth.ok ? "ok" : "degraded",
     timestamp: new Date().toISOString(),
-    solana: health,
+    services: {
+      solana: solanaHealth,
+      elevenlabs: { configured: elevenlabsReady },
+    },
   });
 });
 
@@ -29,38 +37,124 @@ app.post("/api/risk/analyze", async (req, res) => {
     }
 
     const result = await analyzeTransactionRisk(transactionData, walletAddress);
-    res.json(result);
+
+    const warningText = elevenlabs.buildWarningText(result.riskScore, {
+      reason: result.reasons?.[0],
+    });
+
+    res.json({ ...result, warningText });
   } catch (error) {
     console.error("Risk analysis error:", error);
     res.status(500).json({ error: "Failed to analyze transaction", details: error.message });
   }
 });
 
-app.post("/api/risk/voice-warning", async (req, res) => {
+app.post("/api/tts/generate", async (req, res) => {
   try {
-    const { riskScore, details } = req.body;
+    const { text, severity, model, voiceId } = req.body;
+    if (!text) return res.status(400).json({ error: "text is required" });
 
-    if (!riskScore || riskScore < 70) {
-      return res.status(400).json({ error: "Only high risk transactions trigger voice warnings" });
-    }
+    const audioRes = await elevenlabs.generateSpeech(text, {
+      severity: severity || "high",
+      model,
+      voiceId,
+    });
 
-    const warning = generateVoiceWarning(riskScore, details);
-    res.json({ message: warning, shouldPlay: true });
+    const audioBuffer = Buffer.from(await audioRes.arrayBuffer());
+    res.set({
+      "Content-Type": "audio/mpeg",
+      "Content-Length": audioBuffer.length.toString(),
+    });
+    res.send(audioBuffer);
   } catch (error) {
-    console.error("Voice warning error:", error);
-    res.status(500).json({ error: "Failed to generate voice warning" });
+    console.error("TTS error:", error);
+    res.status(500).json({ error: "TTS generation failed", details: error.message });
   }
 });
 
-function generateVoiceWarning(riskScore, details) {
-  if (riskScore >= 90) {
-    return "CRITICAL WARNING: This transaction is highly likely malicious. Do NOT proceed. Cancel immediately.";
+app.post("/api/tts/stream", async (req, res) => {
+  try {
+    const { text, severity, model, voiceId } = req.body;
+    if (!text) return res.status(400).json({ error: "text is required" });
+
+    const audioRes = await elevenlabs.generateSpeechStream(text, {
+      severity: severity || "high",
+      model,
+      voiceId,
+    });
+
+    res.set({
+      "Content-Type": "audio/mpeg",
+      "Transfer-Encoding": "chunked",
+    });
+
+    const reader = audioRes.body.getReader();
+    const pump = async () => {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) { res.end(); return; }
+        res.write(Buffer.from(value));
+      }
+    };
+    pump().catch((err) => {
+      console.error("Stream error:", err);
+      res.end();
+    });
+  } catch (error) {
+    console.error("TTS stream error:", error);
+    res.status(500).json({ error: "TTS stream failed", details: error.message });
   }
-  if (riskScore >= 75) {
-    return "HIGH RISK ALERT: This transaction shows suspicious patterns. Please review carefully before confirming.";
+});
+
+app.post("/api/tts/analyze-and-speak", async (req, res) => {
+  try {
+    const { transactionData, walletAddress } = req.body;
+    if (!transactionData) return res.status(400).json({ error: "transactionData is required" });
+
+    const analysis = await analyzeTransactionRisk(transactionData, walletAddress);
+    const severity = analysis.riskScore >= 90 ? "critical" : analysis.riskScore >= 75 ? "high" : "medium";
+
+    const warningText = elevenlabs.buildWarningText(analysis.riskScore, {
+      reason: analysis.reasons?.[0],
+    });
+
+    if (!warningText) {
+      return res.json({ ...analysis, warningText: null, shouldPlay: false });
+    }
+
+    const audioRes = await elevenlabs.generateSpeech(warningText, { severity });
+    const audioBuffer = Buffer.from(await audioRes.arrayBuffer());
+
+    res.json({
+      ...analysis,
+      warningText,
+      shouldPlay: true,
+      audio: audioBuffer.toString("base64"),
+      severity,
+    });
+  } catch (error) {
+    console.error("Analyze and speak error:", error);
+    res.status(500).json({ error: "Failed", details: error.message });
   }
-  return "WARNING: This transaction may be malicious. Exercise caution and verify all details before proceeding.";
-}
+});
+
+app.post("/api/real/tx/:signature/analyze", async (req, res) => {
+  try {
+    const result = await realData.getTransactionRisk(req.params.signature);
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.get("/api/real/address/:address/risk", async (req, res) => {
+  try {
+    const result = await realData.getAddressRisk(req.params.address);
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
 
 app.get("/api/analytics/risk-history", (req, res) => {
   const mockHistory = [
@@ -147,6 +241,116 @@ app.get("/api/solana/signatures/:address", async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const sigs = await solanaService.getSignaturesForAddress(req.params.address, limit);
     res.json({ signatures: sigs });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const result = await authService.login(req.body);
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.get("/api/auth/me", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (!token) return res.status(401).json({ error: "No token" });
+    const user = await authService.authenticate(token);
+    res.json(user);
+  } catch (error) {
+    res.status(401).json({ error: error.message });
+  }
+});
+
+app.post("/api/auth/profile", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (!token) return res.status(401).json({ error: "No token" });
+    const user = await authService.authenticate(token);
+    const updated = await authService.updateProfile(user.walletAddress, req.body);
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.get("/api/auth/users", (req, res) => {
+  res.json({ users: authService.listUsers(), total: authService.listUsers().length });
+});
+
+app.get("/api/community/fee-info", (req, res) => {
+  res.json(communityService.getPlatformFeeInfo());
+});
+
+app.post("/api/community/create", async (req, res) => {
+  try {
+    const community = await communityService.createCommunity(req.body);
+    res.json(community);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.get("/api/community/:id", (req, res) => {
+  const community = communityService.getCommunity(req.params.id);
+  if (!community) return res.status(404).json({ error: "Community not found" });
+  res.json(community);
+});
+
+app.get("/api/communities", (req, res) => {
+  const filter = {};
+  if (req.query.activeOnly === "true") filter.activeOnly = true;
+  if (req.query.minBalance) filter.minBalance = Number(req.query.minBalance);
+  const list = communityService.listCommunities(filter);
+  res.json({ communities: list, total: list.length });
+});
+
+app.post("/api/community/:id/apply", async (req, res) => {
+  try {
+    const application = await communityService.applyToJoin(req.params.id, req.body);
+    res.json(application);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post("/api/community/:id/review-application", async (req, res) => {
+  try {
+    const { applicationId, accept, note } = req.body;
+    if (!applicationId) return res.status(400).json({ error: "applicationId required" });
+    const result = await communityService.reviewApplication(req.params.id, applicationId, accept, note);
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post("/api/community/:id/donate", async (req, res) => {
+  try {
+    const result = await communityService.donateToCommunity(req.params.id, req.body);
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post("/api/community/:id/set-stipend", async (req, res) => {
+  try {
+    const config = await communityService.setStipendConfig(req.params.id, req.body);
+    res.json(config);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post("/api/community/:id/distribute-stipends", async (req, res) => {
+  try {
+    const distribution = await communityService.distributeStipends(req.params.id);
+    res.json(distribution);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

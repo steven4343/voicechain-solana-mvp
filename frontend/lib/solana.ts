@@ -8,7 +8,6 @@ import {
   Transaction,
   SendOptions,
   SimulatedTransactionResponse,
-  VersionedTransaction,
 } from "@solana/web3.js";
 
 export type SolanaNetwork = "mainnet-beta" | "testnet" | "devnet";
@@ -116,18 +115,19 @@ export async function getSignaturesForAddress(
 }
 
 export async function simulateTransaction(
-  transaction: Transaction | VersionedTransaction
-): Promise<SimulatedTransactionResponse> {
+  transaction: Transaction
+) {
   const connection = getConnection();
   return connection.simulateTransaction(transaction);
 }
 
 export async function sendTransaction(
-  transaction: Transaction | VersionedTransaction,
+  transaction: Transaction,
+  signers?: any[],
   sendOptions?: SendOptions
 ): Promise<TransactionSignature> {
   const connection = getConnection();
-  return connection.sendTransaction(transaction, sendOptions);
+  return connection.sendTransaction(transaction, signers || [], sendOptions);
 }
 
 export async function getTokenBalance(
